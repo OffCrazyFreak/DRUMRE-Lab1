@@ -157,8 +157,70 @@ export default function Map({
         address: store.address,
         city: store.city,
         zipcode: store.zipcode,
+        original_lon: store.lon,
+        original_lat: store.lat,
       },
     }));
+
+    // Group features by exact coordinates and add jitter for overlapping points
+    const coordGroups: { [key: string]: GeoJSON.Feature<GeoJSON.Point>[] } = {};
+    features.forEach((feature) => {
+      const coords = (feature.geometry as GeoJSON.Point).coordinates as [
+        number,
+        number
+      ];
+      const key = `${coords[0]},${coords[1]}`;
+      if (!coordGroups[key]) {
+        coordGroups[key] = [];
+      }
+      coordGroups[key].push(feature as GeoJSON.Feature<GeoJSON.Point>);
+    });
+
+    // Apply jitter to overlapping points
+    Object.values(coordGroups).forEach((group) => {
+      if (group.length > 1) {
+        // Convert degrees to approximate meters for small offsets
+        // ~111,000 meters per degree latitude, ~111,000 * cos(lat) per degree longitude
+        const baseLat = (group[0].geometry.coordinates as [number, number])[1];
+        const metersPerDegreeLat = 111000;
+        const metersPerDegreeLon = 111000 * Math.cos((baseLat * Math.PI) / 180);
+
+        // Maximum jitter distance in meters (adjust as needed)
+        const maxJitterMeters = 10;
+
+        group.forEach((feature, index) => {
+          if (index > 0) {
+            // Don't jitter the first point
+            // Use deterministic jitter based on store properties for consistency
+            const props = feature.properties as any;
+            const seed = `${props.chain_code}-${props.code}`
+              .split("")
+              .reduce((a, b) => {
+                a = (a << 5) - a + b.charCodeAt(0);
+                return a & a;
+              }, 0);
+
+            // Simple seeded random function
+            const seededRandom = (seed: number) => {
+              const x = Math.sin(seed) * 10000;
+              return x - Math.floor(x);
+            };
+
+            // Generate deterministic angle and distance
+            const angle = seededRandom(seed) * 2 * Math.PI;
+            const distance = seededRandom(seed + 1) * maxJitterMeters;
+
+            // Convert back to degrees
+            const deltaLat = (distance * Math.sin(angle)) / metersPerDegreeLat;
+            const deltaLon = (distance * Math.cos(angle)) / metersPerDegreeLon;
+
+            const coords = feature.geometry.coordinates as [number, number];
+            coords[0] += deltaLon;
+            coords[1] += deltaLat;
+          }
+        });
+      }
+    });
 
     source.setData({
       type: "FeatureCollection",
