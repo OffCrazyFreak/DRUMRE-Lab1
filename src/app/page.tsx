@@ -28,20 +28,25 @@ export default function StoresPage() {
   ]);
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [selectedChains, setSelectedChains] = useState<string[] | null>(() => {
-    const saved = localStorage.getItem("selectedStoreChains");
-    if (saved) {
-      try {
+  const [selectedChains, setSelectedChains] = useState<string[] | null>(null);
+
+  // Read saved selected chains from localStorage on client mount only
+  useEffect(() => {
+    try {
+      const saved =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("selectedStoreChains")
+          : null;
+      if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          setSelectedChains(parsed);
         }
-      } catch (error) {
-        console.error("Error parsing saved chains:", error);
       }
+    } catch (error) {
+      console.error("Error reading saved chains from localStorage:", error);
     }
-    return null;
-  });
+  }, []);
 
   // Save selected chains to localStorage when they change
   useEffect(() => {
