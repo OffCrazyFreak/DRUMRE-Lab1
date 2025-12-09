@@ -28,25 +28,29 @@ export default function StoresPage() {
   ]);
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [selectedChains, setSelectedChains] = useState<string[]>([]);
-
-  // Load selected chains from localStorage on mount
-  useEffect(() => {
-    // This will be updated after uniqueChains is available
+  const [selectedChains, setSelectedChains] = useState<string[] | null>(() => {
     const saved = localStorage.getItem("selectedStoreChains");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setSelectedChains(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       } catch (error) {
         console.error("Error parsing saved chains:", error);
       }
     }
-  }, []);
+    return null;
+  });
 
   // Save selected chains to localStorage when they change
   useEffect(() => {
-    localStorage.setItem("selectedStoreChains", JSON.stringify(selectedChains));
+    if (selectedChains !== null) {
+      localStorage.setItem(
+        "selectedStoreChains",
+        JSON.stringify(selectedChains)
+      );
+    }
   }, [selectedChains]);
 
   // Fetch all stores from database
@@ -96,10 +100,10 @@ export default function StoresPage() {
 
   // Set default selection to all chains when data loads and no selection exists
   useEffect(() => {
-    if (uniqueChains.length > 0 && selectedChains.length === 0) {
+    if (uniqueChains.length > 0 && selectedChains === null) {
       setSelectedChains(uniqueChains);
     }
-  }, [uniqueChains, selectedChains.length]);
+  }, [uniqueChains, selectedChains]);
 
   // Filter stores with valid coordinates for map display
   const allVisibleStores: GeocodedStore[] = stores.filter(
@@ -109,7 +113,7 @@ export default function StoresPage() {
 
   // Filter stores based on selected chains
   const visibleStores: GeocodedStore[] =
-    selectedChains.length === 0
+    !selectedChains || selectedChains.length === 0
       ? allVisibleStores
       : allVisibleStores.filter((store) =>
           selectedChains.includes(store.chain_code)
@@ -135,7 +139,7 @@ export default function StoresPage() {
                   {!isLoadingStores && uniqueChains.length > 0 && (
                     <div className="w-auto">
                       <MultiSelect
-                        values={selectedChains}
+                        values={selectedChains || []}
                         onValuesChange={setSelectedChains}
                       >
                         <MultiSelectTrigger className="w-full sm:w-auto max-w-xs sm:max-w-md">
