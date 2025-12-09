@@ -194,11 +194,11 @@ export default function MapComponent({
         // Create a custom marker element
         const el = document.createElement("div");
         el.className = "store-marker";
-        el.style.width = "30px";
-        el.style.height = "30px";
+        el.style.width = "12px";
+        el.style.height = "12px";
         el.style.borderRadius = "50%";
-        el.style.backgroundColor = "#ef4444";
-        el.style.border = "2px solid white";
+        el.style.backgroundColor = "magenta";
+        el.style.border = "1px solid white";
         el.style.cursor = "pointer";
         el.style.boxShadow = "0 2px 4px rgba(0,0,0,0.3)";
 

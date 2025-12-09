@@ -1,3 +1,5 @@
+import { ObjectId } from "mongodb";
+
 export interface Store {
   chain_code: string;
   code: string;
@@ -12,4 +14,10 @@ export interface Store {
 export interface GeocodedStore extends Store {
   lat: number;
   lon: number;
+}
+
+export interface StoreDocument extends Store {
+  _id?: ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
