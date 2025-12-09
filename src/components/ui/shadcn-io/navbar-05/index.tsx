@@ -36,6 +36,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { ComponentProps } from "react";
+import Link from "next/link";
 
 // Hamburger icon component
 const HamburgerIcon = ({
@@ -256,16 +257,11 @@ export const Navbar05 = React.forwardRef<HTMLElement, Navbar05Props>(
                     <NavigationMenuList className="flex-col items-start gap-0">
                       {navigationLinks.map((link, index) => (
                         <NavigationMenuItem key={index} className="w-full">
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (onNavItemClick && link.href)
-                                onNavItemClick(link.href);
-                            }}
-                            className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer no-underline"
-                          >
-                            {link.label}
-                          </button>
+                          <Link href={link.href || "#"}>
+                            <button className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer no-underline">
+                              {link.label}
+                            </button>
+                          </Link>
                         </NavigationMenuItem>
                       ))}
                     </NavigationMenuList>
@@ -287,16 +283,13 @@ export const Navbar05 = React.forwardRef<HTMLElement, Navbar05Props>(
                   <NavigationMenuList className="gap-1">
                     {navigationLinks.map((link, index) => (
                       <NavigationMenuItem key={index}>
-                        <NavigationMenuLink
-                          href={link.href}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (onNavItemClick && link.href)
-                              onNavItemClick(link.href);
-                          }}
-                          className="text-muted-foreground hover:text-primary py-1.5 font-medium transition-colors cursor-pointer group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-                        >
-                          {link.label}
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href={link.href || "#"}
+                            className="text-muted-foreground hover:text-primary py-1.5 font-medium transition-colors cursor-pointer group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                          >
+                            {link.label}
+                          </Link>
                         </NavigationMenuLink>
                       </NavigationMenuItem>
                     ))}

@@ -32,7 +32,6 @@ export default function Map({
 
   useEffect(() => {
     if (!mapContainer.current || initialized.current) return;
-    initialized.current = true;
 
     const initialCenter: [number, number] = center || [14.7978, 45.4039];
     const initialZoom = center ? zoom : 6;
@@ -63,6 +62,8 @@ export default function Map({
 
     // Setup map on load
     mapInstance.on("load", () => {
+      initialized.current = true;
+
       // Get user location
       if (navigator.geolocation && !center) {
         navigator.geolocation.getCurrentPosition(

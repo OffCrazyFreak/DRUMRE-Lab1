@@ -116,7 +116,7 @@ export default function StoresPage() {
         );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="">
       <div className="p-8">
         <div className="max-w-7xl mx-auto">
           {/* Status and Map */}
