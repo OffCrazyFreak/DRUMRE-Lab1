@@ -56,27 +56,27 @@ export function DataTable<TData, TValue>({
 
   const queryClient = useQueryClient();
 
-  const deleteUsersMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
-      const response = await fetch("/api/users", {
+  const deleteStoresMutation = useMutation({
+    mutationFn: async (ids: { chain: string; code: string }[]) => {
+      const response = await fetch("/api/stores", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({ stores: ids }),
       });
       if (!response.ok) {
-        throw new Error("Failed to delete users");
+        throw new Error("Failed to delete stores");
       }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("Users deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["stores"] });
+      toast.success("Stores deleted successfully");
       setRowSelection({});
     },
     onError: (error) => {
-      toast.error("Failed to delete users");
+      toast.error("Failed to delete stores");
       console.error(error);
     },
   });
@@ -107,9 +107,12 @@ export function DataTable<TData, TValue>({
 
   const handleBulkDelete = () => {
     const selectedRows = table.getFilteredSelectedRowModel().rows;
-    const ids = selectedRows.map((row) => (row.original as any).id);
+    const ids = selectedRows.map((row) => ({
+      chain: (row.original as any).chain_code,
+      code: (row.original as any).code,
+    }));
     if (ids.length > 0) {
-      deleteUsersMutation.mutate(ids);
+      deleteStoresMutation.mutate(ids);
     }
   };
 
@@ -118,10 +121,12 @@ export function DataTable<TData, TValue>({
       <div className="flex items-center py-4">
         <div className="flex items-center space-x-2">
           <Input
-            placeholder="Filter emails..."
-            value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
+            placeholder="Filter addresses..."
+            value={
+              (table.getColumn("address")?.getFilterValue() as string) ?? ""
+            }
             onChange={(event) =>
-              table.getColumn("email")?.setFilterValue(event.target.value)
+              table.getColumn("address")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />
@@ -158,7 +163,7 @@ export function DataTable<TData, TValue>({
               variant="destructive"
               size="sm"
               onClick={handleBulkDelete}
-              disabled={deleteUsersMutation.isPending}
+              disabled={deleteStoresMutation.isPending}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Selected ({Object.keys(rowSelection).length})

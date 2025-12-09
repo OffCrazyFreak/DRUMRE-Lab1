@@ -376,6 +376,23 @@ export async function DELETE(request: NextRequest) {
     const chain = searchParams.get("chain");
     const code = searchParams.get("code");
 
+    const body = await request.json().catch(() => ({}));
+    const stores = body.stores as
+      | Array<{ chain: string; code: string }>
+      | undefined;
+
+    if (stores && stores.length > 0) {
+      // Bulk delete
+      const { deleteStoresByIds } = await import("@/lib/services/storeService");
+      const ids = stores.map((s) => ({ chain_code: s.chain, code: s.code }));
+      const deletedCount = await deleteStoresByIds(ids);
+      return NextResponse.json({
+        success: true,
+        deletedCount,
+        message: `Deleted ${deletedCount} stores`,
+      });
+    }
+
     if (!chain) {
       return NextResponse.json(
         {

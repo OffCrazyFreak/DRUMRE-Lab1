@@ -3,6 +3,7 @@
 import { columns, User } from "./columns";
 import { DataTable } from "./data-table";
 import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 
 async function getUsers(): Promise<User[]> {
   const response = await fetch("/api/users");
@@ -49,7 +50,9 @@ export default function UsersPage() {
   return (
     <div className="container mx-auto py-10">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Users</h1>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          Users <Badge variant="secondary">{users.length}</Badge>
+        </h1>
         <p className="text-muted-foreground">Manage all users in the system.</p>
       </div>
       <DataTable columns={columns} data={users} />

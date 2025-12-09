@@ -28,6 +28,7 @@ export default function RootLayout({
   const navigationLinks = [
     { href: "/", label: "Home" },
     { href: "/users", label: "Users" },
+    { href: "/stores", label: "Stores" },
   ];
 
   return (
