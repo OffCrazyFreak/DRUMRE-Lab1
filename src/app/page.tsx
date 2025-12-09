@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import Map from "@/components/Map";
@@ -13,6 +13,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  MultiSelect,
+  MultiSelectContent,
+  MultiSelectItem,
+  MultiSelectTrigger,
+  MultiSelectValue,
+} from "@/components/ui/multi-select";
 
 export default function StoresPage() {
   const [currentZoom, setCurrentZoom] = useState<number>(6);
@@ -21,6 +28,26 @@ export default function StoresPage() {
   ]);
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [selectedChains, setSelectedChains] = useState<string[]>([]);
+
+  // Load selected chains from localStorage on mount
+  useEffect(() => {
+    // This will be updated after uniqueChains is available
+    const saved = localStorage.getItem("selectedStoreChains");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setSelectedChains(parsed);
+      } catch (error) {
+        console.error("Error parsing saved chains:", error);
+      }
+    }
+  }, []);
+
+  // Save selected chains to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem("selectedStoreChains", JSON.stringify(selectedChains));
+  }, [selectedChains]);
 
   // Fetch all stores from database
   const {
@@ -62,11 +89,31 @@ export default function StoresPage() {
     missingCoordinates: 0,
   };
 
+  // Get unique chain codes
+  const uniqueChains = Array.from(
+    new Set(stores.map((store: any) => store.chain_code).filter(Boolean))
+  ).sort() as string[];
+
+  // Set default selection to all chains when data loads and no selection exists
+  useEffect(() => {
+    if (uniqueChains.length > 0 && selectedChains.length === 0) {
+      setSelectedChains(uniqueChains);
+    }
+  }, [uniqueChains, selectedChains.length]);
+
   // Filter stores with valid coordinates for map display
-  const visibleStores: GeocodedStore[] = stores.filter(
+  const allVisibleStores: GeocodedStore[] = stores.filter(
     (store: any): store is GeocodedStore =>
       store.lat != null && store.lon != null
   );
+
+  // Filter stores based on selected chains
+  const visibleStores: GeocodedStore[] =
+    selectedChains.length === 0
+      ? allVisibleStores
+      : allVisibleStores.filter((store) =>
+          selectedChains.includes(store.chain_code)
+        );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -75,10 +122,47 @@ export default function StoresPage() {
           {/* Status and Map */}
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>Store Map</CardTitle>
-              <CardDescription>
-                All stores from database with coordinates
-              </CardDescription>
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <CardTitle>Store Map</CardTitle>
+                  <CardDescription>
+                    All stores from database with coordinates
+                  </CardDescription>
+                </div>
+
+                <div className="flex items-center flex-wrap gap-4">
+                  {/* Store Chain Filter */}
+                  {!isLoadingStores && uniqueChains.length > 0 && (
+                    <div className="w-auto">
+                      <MultiSelect
+                        values={selectedChains}
+                        onValuesChange={setSelectedChains}
+                      >
+                        <MultiSelectTrigger className="w-full sm:w-auto max-w-xs sm:max-w-md">
+                          <MultiSelectValue placeholder="Select store chains to display..." />
+                        </MultiSelectTrigger>
+                        <MultiSelectContent>
+                          {uniqueChains.map((chain) => (
+                            <MultiSelectItem key={chain} value={chain}>
+                              {chain.toUpperCase()}
+                            </MultiSelectItem>
+                          ))}
+                        </MultiSelectContent>
+                      </MultiSelect>
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleSyncWithAPI}
+                    disabled={isSyncing}
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                  >
+                    {isSyncing
+                      ? "Syncing with API..."
+                      : "Sync with cijene.dev API"}
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -104,15 +188,7 @@ export default function StoresPage() {
                     </div>
                   )}
                 </div>
-                <Button
-                  onClick={handleSyncWithAPI}
-                  disabled={isSyncing}
-                  variant="outline"
-                >
-                  {isSyncing
-                    ? "Syncing with API..."
-                    : "Sync with cijene.dev API"}
-                </Button>
+
                 <div className="mt-6">
                   <Map
                     stores={visibleStores}
