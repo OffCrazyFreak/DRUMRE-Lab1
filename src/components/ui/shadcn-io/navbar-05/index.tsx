@@ -7,8 +7,12 @@ import {
   HelpCircleIcon,
   UserIcon,
   ChevronDownIcon,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession, signIn, signOut } from "@/lib/auth-client";
+import { useUser } from "@/lib/user-context";
+import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -77,50 +81,55 @@ const UserMenu = ({
   userEmail?: string;
   userAvatar?: string;
   onItemClick?: (item: string) => void;
-}) => (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <Button
-        variant="ghost"
-        className="h-9 px-2 py-0 hover:bg-accent hover:text-accent-foreground"
-      >
-        <Avatar className="h-7 w-7">
-          <AvatarImage src={userAvatar} alt={userName} />
-          <AvatarFallback className="text-xs">
-            {userName
-              .split(" ")
-              .map((n) => n[0])
-              .join("")}
-          </AvatarFallback>
-        </Avatar>
-        <ChevronDownIcon className="h-3 w-3 ml-1" />
-        <span className="sr-only">User menu</span>
-      </Button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" className="w-56">
-      <DropdownMenuLabel>
-        <div className="flex flex-col space-y-1">
-          <p className="text-sm font-medium leading-none">{userName}</p>
-          <p className="text-xs leading-none text-muted-foreground">
-            {userEmail}
-          </p>
-        </div>
-      </DropdownMenuLabel>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={() => onItemClick?.("profile")}>
-        Profile
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => onItemClick?.("settings")}>
-        Settings
-      </DropdownMenuItem>
+}) => {
+  const handleSignOut = async () => {
+    await signOut();
+    onItemClick?.("logout");
+  };
 
-      <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={() => onItemClick?.("logout")}>
-        Log out
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
-);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="h-9 px-2 py-0 hover:bg-accent hover:text-accent-foreground"
+        >
+          <Avatar className="h-7 w-7">
+            <AvatarImage src={userAvatar} alt={userName} />
+            <AvatarFallback className="text-xs">
+              {userName
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </AvatarFallback>
+          </Avatar>
+          <ChevronDownIcon className="h-3 w-3 ml-1" />
+          <span className="sr-only">User menu</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{userName}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {userEmail}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onItemClick?.("profile")}>
+          Profile
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onItemClick?.("settings")}>
+          Settings
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSignOut}>Log out</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 // Types
 export interface Navbar05NavItem {
@@ -163,7 +172,27 @@ export const Navbar05 = React.forwardRef<HTMLElement, Navbar05Props>(
     ref
   ) => {
     const [isMobile, setIsMobile] = useState(false);
+    const [profileDialogOpen, setProfileDialogOpen] = useState(false);
     const containerRef = useRef<HTMLElement>(null);
+    const { data: session, isPending } = useSession();
+    const { user: contextUser } = useUser();
+
+    // Use context user if available, fall back to session user
+    const user = contextUser || session?.user;
+
+    const handleUserMenuClick = (item: string) => {
+      if (item === "profile") {
+        setProfileDialogOpen(true);
+      }
+      onUserItemClick?.(item);
+    };
+
+    const handleGoogleSignIn = async () => {
+      await signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+    };
 
     useEffect(() => {
       const checkWidth = () => {
@@ -278,13 +307,30 @@ export const Navbar05 = React.forwardRef<HTMLElement, Navbar05Props>(
           </div>
           {/* Right side */}
           <div className="flex items-center gap-4">
-            {/* User menu */}
-            <UserMenu
-              userName={userName}
-              userEmail={userEmail}
-              userAvatar={userAvatar}
-              onItemClick={onUserItemClick}
-            />
+            {/* Show login button if not authenticated, otherwise show user menu */}
+            {isPending ? (
+              <Button variant="ghost" size="sm" disabled>
+                Loading...
+              </Button>
+            ) : user ? (
+              <>
+                <UserMenu
+                  userName={user.name || "User"}
+                  userEmail={user.email || ""}
+                  userAvatar={user.image || undefined}
+                  onItemClick={handleUserMenuClick}
+                />
+                <ProfileEditDialog
+                  open={profileDialogOpen}
+                  onOpenChange={setProfileDialogOpen}
+                />
+              </>
+            ) : (
+              <Button onClick={handleGoogleSignIn} size="sm" variant="default">
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign in with Google
+              </Button>
+            )}
           </div>
         </div>
       </header>
