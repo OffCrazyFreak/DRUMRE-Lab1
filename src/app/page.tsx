@@ -1,65 +1,181 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import MapComponent from "@/components/MapComponent";
+import { geocodeStores, filterStoresByDistance } from "@/lib/geocoding";
+import { GeocodedStore } from "@/types/store";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+export default function StoresPage() {
+  const [geocodedStores, setGeocodedStores] = useState<GeocodedStore[]>([]);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState<number>(6);
+  const [currentCenter, setCurrentCenter] = useState<[number, number]>([
+    14.7978, 45.4039,
+  ]); // Delnice
+  const [allStores, setAllStores] = useState<any[]>([]);
+  const [loadedChains, setLoadedChains] = useState<Set<string>>(new Set());
+
+  // Priority chains to load first (major Croatian chains likely to be nearby)
+  const PRIORITY_CHAINS = ["konzum", "lidl", "plodine", "spar", "studenac"];
+
+  // Fetch available chains
+  const { data: chainsData, isLoading: isLoadingChains } = useQuery({
+    queryKey: ["chains"],
+    queryFn: async () => {
+      const response = await axios.get("/api/chains");
+      return response.data;
+    },
+  });
+
+  // Progressive loading: fetch priority chains first, then others
+  const loadStoresForChain = useCallback(async (chainCode: string) => {
+    try {
+      const response = await axios.get(`/api/stores?chain=${chainCode}`);
+      if (response.data?.data) {
+        // Filter only stores from Zagreb
+        const zagrebStores = response.data.data.filter((store: any) =>
+          store.city.toLowerCase().includes("zagreb")
+        );
+
+        // Geocode only Zagreb stores
+        const geocoded = await geocodeStores(zagrebStores);
+
+        // Filter out stores that couldn't be geocoded
+        const validStores = geocoded.filter(
+          (store): store is GeocodedStore =>
+            store.lat !== undefined && store.lon !== undefined
+        );
+
+        // Add to geocoded stores
+        setGeocodedStores((prev) => [...prev, ...validStores]);
+        setAllStores((prev) => [...prev, ...zagrebStores]);
+        setLoadedChains((prev) => new Set([...prev, chainCode]));
+      }
+    } catch (error) {
+      console.error(`Error loading stores for chain ${chainCode}:`, error);
+    }
+  }, []);
+
+  // Start progressive loading when chains are loaded
+  useEffect(() => {
+    if (chainsData?.chains && !isLoadingChains) {
+      const startProgressiveLoading = async () => {
+        setIsGeocoding(true);
+
+        // Phase 1: Load priority chains first
+        for (const chain of PRIORITY_CHAINS) {
+          if (chainsData.chains.includes(chain)) {
+            await loadStoresForChain(chain);
+          }
+        }
+
+        // Phase 2: Load remaining chains in background
+        const remainingChains = chainsData.chains.filter(
+          (chain: string) => !PRIORITY_CHAINS.includes(chain)
+        );
+
+        // Load remaining chains asynchronously
+        remainingChains.forEach((chain: string) => {
+          loadStoresForChain(chain);
+        });
+
+        setIsGeocoding(false);
+      };
+
+      startProgressiveLoading();
+    }
+  }, [chainsData, isLoadingChains, loadStoresForChain]);
+
+  // Filter visible stores based on zoom level
+  const visibleStores = useMemo(() => {
+    if (currentZoom >= 10) {
+      return filterStoresByDistance(
+        geocodedStores,
+        currentCenter[1], // lat
+        currentCenter[0], // lon
+        10 // 10km radius
+      );
+    }
+    return geocodedStores;
+  }, [geocodedStores, currentZoom, currentCenter]);
+
+  const handleZoomChange = (zoom: number) => {
+    setCurrentZoom(zoom);
+  };
+
+  const handleCenterChange = (center: [number, number]) => {
+    setCurrentCenter(center);
+  };
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Status */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Map Status</CardTitle>
+              <CardDescription>
+                Automatic store loading based on zoom level
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-gray-600 space-y-2">
+                {isLoadingChains && <p>Loading chains...</p>}
+                {chainsData && (
+                  <div>
+                    <p>Found {chainsData.chains.length} chains</p>
+                    <p>
+                      Loaded {loadedChains.size} chains with{" "}
+                      {geocodedStores.length} geocoded stores
+                    </p>
+                    <p>Current zoom: {currentZoom.toFixed(1)}</p>
+                    <p>
+                      Center: {currentCenter[1].toFixed(4)},{" "}
+                      {currentCenter[0].toFixed(4)}
+                    </p>
+                    {currentZoom >= 10 ? (
+                      <p className="text-blue-600">
+                        📍 Showing stores within 10km radius (
+                        {visibleStores.length} visible)
+                      </p>
+                    ) : (
+                      <p className="text-green-600">
+                        🌍 Showing all loaded stores ({visibleStores.length}{" "}
+                        visible)
+                      </p>
+                    )}
+                  </div>
+                )}
+                {isGeocoding && (
+                  <p className="text-blue-600">
+                    Geocoding stores... This may take a moment.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Map */}
+          <Card className="mb-8">
+            <CardContent className="p-6">
+              <MapComponent
+                stores={visibleStores}
+                onZoomChange={handleZoomChange}
+                onCenterChange={handleCenterChange}
+              />
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

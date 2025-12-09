@@ -46,7 +46,7 @@ Aplikacija neka bude na engleskom.
 - **Funkcionalnost**:
   - Dohvat koordinata adresa trgovina
   - Prikaz na mapi (MapLibre GL)
-- **Dokumentacija**: [Nominatim API](https://nominatim.org/release-docs/latest/api/Overview/)
+- **Dokumentacija**: [Photon Komoot API](https://photon.komoot.io/)
 
 ---
 
@@ -85,6 +85,6 @@ pnpm install
 
 - React Query koristi se za dohvat i keširanje podataka iz API-ja.
 - React Hook Form koristi se za obrasce unosa i filtriranja.
-- Axios se koristi za pozive prema API-jima (BetterAuth, cijene.dev, Nominatim).
+- Axios se koristi za pozive prema API-jima (BetterAuth, cijene.dev, Photon Komoot).
 - Tailwind + Shadcn UI za vizualni dizajn.
 - Slijediti primjer iz OpenFreeMap [react-example](https://github.com/w3cj/openfreemap-examples/tree/main/react-example) za implementaciju karte.
