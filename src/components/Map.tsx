@@ -122,7 +122,7 @@ export default function Map({
         data: { type: "FeatureCollection", features: [] },
         cluster: true,
         clusterMaxZoom: 14,
-        clusterRadius: 50,
+        clusterRadius: 20,
       });
 
       // Add store layers and handlers

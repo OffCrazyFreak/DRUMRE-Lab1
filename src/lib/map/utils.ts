@@ -84,15 +84,7 @@ export function addStoreMarkerLayers(map: maplibregl.Map) {
     source: "stores",
     filter: ["has", "point_count"],
     paint: {
-      "circle-color": [
-        "step",
-        ["get", "point_count"],
-        "#51bbd6",
-        10,
-        "#f1f075",
-        30,
-        "#f28cb1",
-      ],
+      "circle-color": "#b88e3a",
       "circle-radius": ["step", ["get", "point_count"], 15, 10, 20, 30, 25],
     },
   });
