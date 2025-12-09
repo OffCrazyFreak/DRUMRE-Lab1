@@ -40,7 +40,7 @@ Aplikacija neka bude na engleskom.
 - **Endpoint**: `/docs?section=lanci-poslovnice`
 - **Dokumentacija**: [Cijene.dev API](https://cijene.dev/docs?section=lanci-poslovnice)
 
-#### 3.3 Nominatim (OpenStreetMap) – Geokodiranje
+#### 3.3 Photon Komoot (OpenStreetMap) – Geokodiranje
 
 - **Svrha**: Pretvaranje adresa u geografske koordinate (lat/lon)
 - **Funkcionalnost**:
@@ -65,7 +65,7 @@ Aplikacija neka bude na engleskom.
 1. **Prijava korisnika** preko Google naloga.
 2. **Pohrana korisničkih podataka** u MongoDB.
 3. **Dohvat podataka trgovina** iz cijene.dev API-ja.
-4. **Geokodiranje adresa** preko Nominatim API-ja za prikaz na karti.
+4. **Geokodiranje adresa** preko Photon Komoot API-ja za prikaz na karti.
 5. **Prikaz interaktivne karte** koristeći MapLibre GL.
 6. **Manipulacija podacima**: filtriranje i brisanje spremljenih podataka.
 7. **Korisničko sučelje** prikazuje podatke u čitljivom formatu, ne JSON-u.

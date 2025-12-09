@@ -1,7 +1,5 @@
 import axios from "axios";
-import { NominatimResponse } from "@/types/store";
 
-// Photon API doesn't have rate limiting like Nominatim
 export async function geocodeAddress(
   address: string,
   city: string
