@@ -7,6 +7,7 @@ import {
   ReactNode,
 } from "react";
 import { useSession } from "@/lib/auth-client";
+import axios from "axios";
 
 export interface User {
   id: string;
@@ -33,12 +34,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize user from session
+  // Initialize user from session and fetch full profile
   useEffect(() => {
-    if (session?.user) {
-      setUser(session.user as User);
-    }
-    setIsLoading(false);
+    const fetchUserProfile = async () => {
+      if (session?.user) {
+        try {
+          const response = await axios.get("/api/user/profile");
+          if (response.data.success) {
+            setUser(response.data.user);
+          }
+        } catch (error) {
+          console.error("Failed to fetch user profile:", error);
+          // Fall back to session user if API fails
+          setUser(session.user as User);
+        }
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    };
+
+    fetchUserProfile();
   }, [session?.user]);
 
   const updateUser = useCallback((updatedData: Partial<User>) => {
