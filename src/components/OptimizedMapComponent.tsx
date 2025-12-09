@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { GeocodedStore } from "@/types/store";
@@ -43,6 +43,9 @@ export default function OptimizedMapComponent({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersLoaded = useRef(false);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(
+    null
+  );
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -54,9 +57,14 @@ export default function OptimizedMapComponent({
     if (navigator.geolocation && !center) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          const coords: [number, number] = [
+            position.coords.longitude,
+            position.coords.latitude,
+          ];
+          setUserLocation(coords);
           if (map.current) {
             map.current.flyTo({
-              center: [position.coords.longitude, position.coords.latitude],
+              center: coords,
               zoom: 13,
             });
           }
@@ -231,6 +239,99 @@ export default function OptimizedMapComponent({
       map.current?.remove();
     };
   }, [center, zoom]);
+
+  // Add pulsating user location dot
+  useEffect(() => {
+    if (!map.current || !userLocation) return;
+
+    // Create pulsating circle effect
+    const pulsingDot = {
+      width: 100,
+      height: 100,
+      data: new Uint8Array(100 * 100 * 4),
+      context: null as CanvasRenderingContext2D | null,
+
+      onAdd: function (this: any) {
+        const canvas = document.createElement("canvas");
+        canvas.width = this.width;
+        canvas.height = this.height;
+        this.context = canvas.getContext("2d");
+      },
+
+      render: function (this: any) {
+        const duration = 1000;
+        const t = (performance.now() % duration) / duration;
+
+        const radius = (size: number) =>
+          size * Math.sqrt(0.5 - Math.pow(t - 0.5, 2));
+        const outerRadius = radius(25);
+        const innerRadius = radius(15);
+
+        const context = this.context;
+        if (!context) return false;
+
+        context.clearRect(0, 0, this.width, this.height);
+
+        // Outer circle
+        context.beginPath();
+        context.arc(
+          this.width / 2,
+          this.height / 2,
+          outerRadius,
+          0,
+          Math.PI * 2
+        );
+        context.fillStyle = "rgba(0, 123, 255, " + (1 - t) + ")";
+        context.fill();
+
+        // Inner circle
+        context.beginPath();
+        context.arc(
+          this.width / 2,
+          this.height / 2,
+          innerRadius,
+          0,
+          Math.PI * 2
+        );
+        context.fillStyle = "rgba(0, 123, 255, 0.8)";
+        context.fill();
+
+        this.data = context.getImageData(0, 0, this.width, this.height).data;
+
+        map.current?.triggerRepaint();
+        return true;
+      },
+    };
+
+    map.current.addImage("pulsing-dot", pulsingDot, { pixelRatio: 2 });
+
+    map.current.addSource("user-location", {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: userLocation,
+            },
+            properties: {},
+          },
+        ],
+      },
+    });
+
+    map.current.addLayer({
+      id: "user-location-layer",
+      type: "symbol",
+      source: "user-location",
+      layout: {
+        "icon-image": "pulsing-dot",
+        "icon-allow-overlap": true,
+      },
+    });
+  }, [userLocation]);
 
   // Update stores when data changes
   useEffect(() => {
