@@ -243,6 +243,21 @@ export function ProfileEditDialog({
             )}
           </div>
 
+          {/* Current Email (Read-only) */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={user.email || ""}
+              disabled
+              className="bg-muted"
+            />
+            <p className="text-xs text-muted-foreground">
+              Email cannot be changed
+            </p>
+          </div>
+
           {/* Image Upload Options */}
           <div className="space-y-2">
             <Label>Profile Picture</Label>
@@ -304,23 +319,8 @@ export function ProfileEditDialog({
             </Tabs>
           </div>
 
-          {/* Current Email (Read-only) */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={user.email || ""}
-              disabled
-              className="bg-muted"
-            />
-            <p className="text-xs text-muted-foreground">
-              Email cannot be changed
-            </p>
-          </div>
-
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-between space-x-2">
             <Button
               type="button"
               variant="outline"
