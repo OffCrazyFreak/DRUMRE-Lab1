@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import OptimizedMapComponent from "@/components/OptimizedMapComponent";
+import Map from "@/components/Map";
 import { GeocodedStore } from "@/types/store";
 import {
   Card,
@@ -19,18 +19,7 @@ export default function StoresPage() {
   const [currentCenter, setCurrentCenter] = useState<[number, number]>([
     14.7978, 45.4039,
   ]);
-  const [leafletZoom, setLeafletZoom] = useState<number>(6);
-  const [leafletCenter, setLeafletCenter] = useState<[number, number]>([
-    14.7978, 45.4039,
-  ]);
-  const [optimizedZoom, setOptimizedZoom] = useState<number>(6);
-  const [optimizedCenter, setOptimizedCenter] = useState<[number, number]>([
-    14.7978, 45.4039,
-  ]);
-  const [optimizedLeafletZoom, setOptimizedLeafletZoom] = useState<number>(6);
-  const [optimizedLeafletCenter, setOptimizedLeafletCenter] = useState<
-    [number, number]
-  >([14.7978, 45.4039]);
+
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Fetch all stores from database
@@ -66,30 +55,6 @@ export default function StoresPage() {
     setCurrentCenter(center);
   };
 
-  const handleLeafletZoomChange = (zoom: number) => {
-    setLeafletZoom(zoom);
-  };
-
-  const handleLeafletCenterChange = (center: [number, number]) => {
-    setLeafletCenter(center);
-  };
-
-  const handleOptimizedZoomChange = (zoom: number) => {
-    setOptimizedZoom(zoom);
-  };
-
-  const handleOptimizedCenterChange = (center: [number, number]) => {
-    setOptimizedCenter(center);
-  };
-
-  const handleOptimizedLeafletZoomChange = (zoom: number) => {
-    setOptimizedLeafletZoom(zoom);
-  };
-
-  const handleOptimizedLeafletCenterChange = (center: [number, number]) => {
-    setOptimizedLeafletCenter(center);
-  };
-
   const stores = storesResponse?.data || [];
   const stats = storesResponse?.stats || {
     total: 0,
@@ -107,7 +72,7 @@ export default function StoresPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="p-8">
         <div className="max-w-7xl mx-auto">
-          {/* Status */}
+          {/* Status and Map */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Store Map</CardTitle>
@@ -148,36 +113,13 @@ export default function StoresPage() {
                     ? "Syncing with API..."
                     : "Sync with cijene.dev API"}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Optimized MapLibre Map */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>
-                MapLibre GL Map (Optimized with Clustering) ⚡
-              </CardTitle>
-              <CardDescription>
-                Uses GeoJSON source with clustering - Much better performance
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <OptimizedMapComponent
-                stores={visibleStores}
-                onZoomChange={handleOptimizedZoomChange}
-                onCenterChange={handleOptimizedCenterChange}
-              />
-              <div className="mt-4 text-sm text-gray-600">
-                <p className="font-semibold">Current View:</p>
-                <p>Zoom: {optimizedZoom.toFixed(1)}</p>
-                <p>
-                  Center: {optimizedCenter[1].toFixed(4)},{" "}
-                  {optimizedCenter[0].toFixed(4)}
-                </p>
-                <p className="text-green-600 font-semibold mt-2">
-                  ✓ Optimized with marker clustering
-                </p>
+                <div className="mt-6">
+                  <Map
+                    stores={visibleStores}
+                    onZoomChange={handleZoomChange}
+                    onCenterChange={handleCenterChange}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
